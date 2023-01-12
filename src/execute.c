@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include "command.h"
 #include "execute.h"
+#include "shell.h"
 
 void execute(const struct dc_env *env, struct dc_error *err, struct command *command, char *path)
 {
@@ -15,7 +16,7 @@ void execute(const struct dc_env *env, struct dc_error *err, struct command *com
             redirect(env, err, command);
             exit(126);
         }
-        int status = /*run(command, path)*/ 1;
+        int status = run(env, err, command, path);
         // NOT SURE
         if (status != EXIT_SUCCESS){
             //handle_run_error(status, err);

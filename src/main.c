@@ -20,8 +20,8 @@ int main(int argc, char *argv[]) {
     dc_error_init(err, false);
     dc_env_set_tracer(env, tracer);
 
-    //return_val = /*run_shell(env, err)*/ 0;
+    return_val = run_shell(env, err);
 
-    //return return_val;
+    return return_val;
     return EXIT_SUCCESS;
 }

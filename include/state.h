@@ -10,7 +10,7 @@ struct state {
     regex_t *out_redirect_regex;
     regex_t *err_redirect_regex;
     char **path;
-    const char *prompt;
+    char *prompt;
     ssize_t max_line_length;
     char *current_line;
     ssize_t current_line_length;

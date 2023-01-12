@@ -3,7 +3,7 @@
 #include <dc_env/env.h>
 #include <dc_error/error.h>
 #include <malloc.h>
-
+#include "shell.h"
 char *get_path(const struct dc_env *env, struct dc_error *err)
 {
 
@@ -22,5 +22,6 @@ void do_reset_state(const struct dc_env *env,
     free(state->current_line);
     state->current_line = NULL;
     memset(err, 0, sizeof(state));
-    // return read commands (not done)
+    // should return type be void or int?
+    //return READ_COMMANDS;
 }

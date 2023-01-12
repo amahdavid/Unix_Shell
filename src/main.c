@@ -1,6 +1,7 @@
 #include <dc_env/env.h>
 #include <dc_error/error.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include "shell.h"
 
 int main(int argc, char *argv[]) {
@@ -19,7 +20,8 @@ int main(int argc, char *argv[]) {
     dc_error_init(err, false);
     dc_env_set_tracer(env, tracer);
 
-    return_val = run_shell(env, err);
+    //return_val = /*run_shell(env, err)*/ 0;
 
-    return return_val;
+    //return return_val;
+    return EXIT_SUCCESS;
 }

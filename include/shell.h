@@ -13,7 +13,7 @@ enum shell_states
     SEPARATE_COMMANDS,
     PARSE_COMMANDS,
     EXECUTE_COMMANDS,
-    EXIT,
+    DC_FSM_EXIT,
     DESTROY_STATE,
 };
 

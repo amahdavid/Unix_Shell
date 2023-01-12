@@ -2,13 +2,13 @@
 #include <dc_env/env.h>
 #include <string.h>
 #include <stdio.h>
-#include <bits/confname.h>
 #include <unistd.h>
 #include "state.h"
 #include "command.h"
 #include "builtins.h"
 #include "shell.h"
 #include "execute.h"
+#include "util.h"
 
 int init_state(const struct dc_env *env, struct dc_error *err, void *arg){
     struct state *state = arg;
@@ -76,6 +76,16 @@ int separate_commands(const struct dc_env *env, struct dc_error *err, void *arg)
     return PARSE_COMMANDS;
 }
 
+int parse_commands(const struct dc_env *env, struct dc_error *err, void *arg){
+    struct state *state = arg;
+    state->fatal_error = 0;
+    int parse_command_val = parse_command(env, err, state, state->command);
+    if (parse_command_val){
+        state->fatal_error = 1;
+        return ERROR;
+    }
+    return EXECUTE_COMMANDS;
+}
 
 int execute_commands(const struct dc_env *env,
                      struct dc_error *err, void *arg) {
@@ -83,7 +93,7 @@ int execute_commands(const struct dc_env *env,
     if (strcmp(state->command->command, "cd") == 0) {
         builtin_cd(env, err, (struct command *) state->command->command);
     } else if (strcmp(state->command->command, "exit") == 0) {
-        return EXIT;
+        return DC_FSM_EXIT;
     } else {
         // not sure
         execute(env, err, (struct command *) state->command->command, (char *) state->path);
@@ -98,3 +108,33 @@ int execute_commands(const struct dc_env *env,
     }
     return RESET_STATE;
 }
+int do_exit(const struct dc_env *env, struct dc_error *err, void *arg, struct state *state){
+    do_reset_state(env, err, state);
+    return DESTROY_STATE;
+}
+
+int reset_state(const struct dc_env *env, struct dc_error *error, void *arg, struct state *state){
+    do_reset_state(env, error, state);
+    return READ_COMMANDS;
+}
+
+int handle_error(const struct dc_env *env, struct dc_error *err, void *arg, struct state *state){
+    if(state->current_line == NULL)
+    {
+        // not sure of "state->current_line"
+        printf("Internal error (%d) %s\n", state->command->exit_code, state->current_line);
+    } else{
+        printf("Internal error (%d) %s: %s\n",
+               state->command->exit_code, state->command->command, state->current_line);    }
+    if (state->fatal_error){
+        return DESTROY_STATE;
+    }
+    return RESET_STATE;
+}
+
+int destroy_state(const struct dc_env *env, struct dc_error *err, void *arg, struct state *state){
+    free(state);
+    return DC_FSM_EXIT;
+}
+
+

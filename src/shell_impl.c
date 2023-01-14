@@ -12,24 +12,26 @@
 #include "shell_impl.h"
 #include <dc_fsm/fsm.h>
 
+#define BUF_SIZE 4000
+
+typedef struct command command;
 regex_t err_regex;
 regex_t in_regex;
 regex_t out_regex;
 
-
 int init_state(const struct dc_env *env, struct dc_error *err, void *arg) {
 
-    struct state *state     = (struct state *) arg;
-    state->fatal_error      = 0;
-    state->max_line_length  = sysconf(_SC_ARG_MAX);
+    struct state *state = (struct state *) arg;
+    state->fatal_error = 0;
+    state->max_line_length = sysconf(_SC_ARG_MAX);
 
     regcomp(&in_regex, "[ \t\f\v]<.*", REG_EXTENDED);
     regcomp(&out_regex, "[ \t\f\v][1^2]?>[>]?.*", REG_EXTENDED);
     regcomp(&err_regex, "[ \t\f\v]2>[>]?.*", REG_EXTENDED);
 
-    state->in_redirect_regex    = &in_regex;
-    state->out_redirect_regex   = &out_regex;
-    state->err_redirect_regex   = &err_regex;
+    state->in_redirect_regex = &in_regex;
+    state->out_redirect_regex = &out_regex;
+    state->err_redirect_regex = &err_regex;
     state->path = NULL;
 
     if (err != NULL && dc_error_has_error(err)) {
@@ -59,7 +61,7 @@ int init_state(const struct dc_env *env, struct dc_error *err, void *arg) {
 
     char *ps1_env = getenv("PS1");
     if (ps1_env == NULL) {
-        state->prompt = (char *) malloc(sizeof (char ) * 3);
+        state->prompt = (char *) malloc(sizeof(char) * 3);
         strcpy(state->prompt, "$ ");
     } else {
         size_t ps1_len = strlen(ps1_env);
@@ -83,10 +85,22 @@ int read_commands(const struct dc_env *env, struct dc_error *err, void *arg) {
     }
 
     printf("%s %s", cwd, state->prompt);
-    if (fgets(state->current_line, 1000, stdin) == NULL) {
+    char *line = NULL;
+    size_t n = 0;
+    long read = getline(&line, &n, stdin);
+    if (read == -1) {
         state->fatal_error = 1;
         return ERROR;
     }
+
+    if (n > BUF_SIZE) {
+        free(line);
+        state->fatal_error = 1;
+        return ERROR;
+    }
+    state->current_line = malloc(n);
+    memcpy(state->current_line, line, n);
+    free(line);
 
     state->current_line_length = strlen(state->current_line);
     if (state->current_line_length == 1) {
@@ -96,13 +110,32 @@ int read_commands(const struct dc_env *env, struct dc_error *err, void *arg) {
 }
 
 int separate_commands(const struct dc_env *env, struct dc_error *err, void *arg) {
-    struct state *state = arg;
-    state->fatal_error = 0;
-    strcpy(state->command->command, "");
-    strcpy(state->command->command, state->current_line);
 
-    // Initialize other fields here
-    // zero out other fields
+    struct state *state = arg;
+
+    if (dc_error_has_error(err)) {
+        state->fatal_error = true;
+        return ERROR;
+    }
+
+    // THIS CAUSES A SIGABRT ERROR
+//    if (state->command){
+//        free(state->command);
+//    }
+    state->command = (command *) malloc(sizeof(command));
+    if (state->command == NULL){
+        return ERROR;
+    }
+    memset(state->command, 0, sizeof(command));
+    size_t line_size = strlen(state->current_line) + 1;
+    state->command->line = (char *) malloc(line_size);
+
+    if (state->command->line == NULL){
+        free(state->command);
+        return ERROR;
+    }
+
+    strcpy(state->command->line, state->current_line);
 
     return PARSE_COMMANDS;
 }

@@ -61,3 +61,27 @@ void do_reset_state(const struct dc_env *env,
     // should return type be void or int?
     //return READ_COMMANDS;
 }
+
+char *expand_path(const struct dc_env *env, struct dc_error *err, char *file){
+    if (file[0] == '~'){
+        char *home_directory = getenv("HOME");
+        if (home_directory == NULL){
+            // handle error
+            printf("ERROR: HOME environment variable not found\n");
+            return NULL;
+        }
+        size_t home_directory_len = strlen(home_directory);
+        size_t file_len = strlen(file);
+        char *expanded_file = malloc(home_directory_len + file_len);
+        if (expanded_file == NULL){
+            printf("ERROR: failed to allocate memory for expanded file\n");
+            return NULL;
+        }
+        strcpy(expanded_file, home_directory);
+        strcpy(expanded_file + home_directory_len, file + 1);
+        return expanded_file;
+    } else{
+        // file path does not start with ~, return original path
+        return file;
+    }
+}

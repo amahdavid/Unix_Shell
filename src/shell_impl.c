@@ -11,6 +11,9 @@
 #include "util.h"
 #include "shell_impl.h"
 #include <dc_fsm/fsm.h>
+#include <dc_posix/dc_stdio.h>
+#include <dc_util/strings.h>
+#include <dc_util/filesystem.h>
 
 #define BUF_SIZE 4000
 
@@ -33,6 +36,8 @@ int init_state(const struct dc_env *env, struct dc_error *err, void *arg) {
     state->out_redirect_regex = &out_regex;
     state->err_redirect_regex = &err_regex;
     state->path = NULL;
+    state->command->line = NULL;
+    state->command = NULL;
 
     if (err != NULL && dc_error_has_error(err)) {
         state->fatal_error = true;
@@ -75,37 +80,38 @@ int init_state(const struct dc_env *env, struct dc_error *err, void *arg) {
 
 
 int read_commands(const struct dc_env *env, struct dc_error *err, void *arg) {
-    struct state *state = arg;
+    struct state *state = (struct state *)arg;
     state->fatal_error = 0;
+    size_t line_len = 0;
 
-    char cwd[1024];
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-        state->fatal_error = 1;
+    char * cur_dir = dc_get_working_dir(env, err);
+    if (dc_error_has_error(err)){
+        state->fatal_error = true;
         return ERROR;
     }
 
-    printf("%s %s", cwd, state->prompt);
-    char *line = NULL;
-    size_t n = 0;
-    long read = getline(&line, &n, stdin);
-    if (read == -1) {
-        state->fatal_error = 1;
+    fprintf(stdout, "[%s] %s", cur_dir, state->prompt);
+
+    state->current_line = malloc(sizeof(char ));
+    if (dc_error_has_error(err)){
+        state->fatal_error = true;
+    }
+
+    dc_getline(env, err, &state->current_line, &line_len, stdin);
+    if (dc_error_has_error(err)){
+        state->fatal_error = true;
         return ERROR;
     }
 
-    if (n > BUF_SIZE) {
-        free(line);
-        state->fatal_error = 1;
-        return ERROR;
-    }
-    state->current_line = malloc(n);
-    memcpy(state->current_line, line, n);
-    free(line);
+    dc_str_trim(env, state->current_line);
+    line_len = strlen(state->current_line);
 
-    state->current_line_length = strlen(state->current_line);
-    if (state->current_line_length == 1) {
+    if (line_len == 0){
         return RESET_STATE;
     }
+
+    state->current_line_length = line_len;
+
     return SEPARATE_COMMANDS;
 }
 
@@ -118,24 +124,29 @@ int separate_commands(const struct dc_env *env, struct dc_error *err, void *arg)
         return ERROR;
     }
 
-    // THIS CAUSES A SIGABRT ERROR
-//    if (state->command){
-//        free(state->command);
-//    }
-    state->command = (command *) malloc(sizeof(command));
-    if (state->command == NULL){
+    state->command = calloc(1, sizeof(command));
+
+    if (state->command == NULL) {
         return ERROR;
     }
-    memset(state->command, 0, sizeof(command));
-    size_t line_size = strlen(state->current_line) + 1;
-    state->command->line = (char *) malloc(line_size);
 
-    if (state->command->line == NULL){
+    state->command->line = strdup(state->current_line);
+
+    if (state->command->line == NULL) {
         free(state->command);
         return ERROR;
     }
 
-    strcpy(state->command->line, state->current_line);
+    //strcpy(state->command->line, state->current_line);
+
+    state->command->command = NULL;
+    state->command->exit_code = 0;
+    state->command->argv = NULL;
+    state->command->argc = 0;
+    state->command->stdin_file = NULL;
+    state->command->stdout_file = NULL;
+    state->command->stdout_overwrite = false;
+    state->command->stderr_file = NULL;
 
     return PARSE_COMMANDS;
 }
@@ -143,8 +154,8 @@ int separate_commands(const struct dc_env *env, struct dc_error *err, void *arg)
 int parse_commands(const struct dc_env *env, struct dc_error *err, void *arg) {
     struct state *state = arg;
     state->fatal_error = 0;
-    int parse_command_val = parse_command(env, err, state, state->command);
-    if (parse_command_val) {
+    parse_command(env, err, state, state->command);
+    if (dc_error_has_error(err)) {
         state->fatal_error = 1;
         return ERROR;
     }
@@ -153,19 +164,17 @@ int parse_commands(const struct dc_env *env, struct dc_error *err, void *arg) {
 
 int execute_commands(const struct dc_env *env,
                      struct dc_error *err, void *arg) {
-    struct state *state;
+    struct state *state = (struct state *)arg;
     if (strcmp(state->command->command, "cd") == 0) {
         builtin_cd(env, err, (struct command *) state->command->command);
     } else if (strcmp(state->command->command, "exit") == 0) {
         return DC_FSM_EXIT;
     } else {
-        // not sure
         execute(env, err, (struct command *) state->command->command, (char *) state->path);
-//        state.exit_code = execute();
-//        if (state.exit_code != 0) {
-//            state.fatal_error = 1;
+        if (dc_error_has_error(err)) {
+            state->fatal_error = true;
+        }
     }
-
     printf("Exit code: %d\n", state->command->exit_code);
     if (state->fatal_error) {
         return ERROR;
@@ -188,7 +197,6 @@ int reset_state(const struct dc_env *env, struct dc_error *error, void *arg) {
 int handle_error(const struct dc_env *env, struct dc_error *err, void *arg) {
     struct state *state = arg;
     if (state->current_line == NULL) {
-        // not sure of "state->current_line"
         printf("Internal error (%d) %s\n", state->command->exit_code, state->current_line);
     } else {
         printf("Internal error (%d) %s: %s\n",
@@ -200,9 +208,57 @@ int handle_error(const struct dc_env *env, struct dc_error *err, void *arg) {
     return RESET_STATE;
 }
 
+int handle_run_error(const struct dc_error *env, void *arg){
+    switch (errno) {
+        case EACCES:
+            printf("EACCES: %s: %s\n", (char *) arg, strerror(errno));
+            break;
+
+        case ELOOP:
+            printf("ELOOP: %s: %s\n", (char *) arg, strerror(errno));
+            break;
+
+        case ENAMETOOLONG:
+            printf("ENAMETOOLONG: %s: %s\n", (char *) arg, strerror(errno));
+            break;
+
+        case ENOENT:
+            printf("ENOTDIR: %s: does not exist\n",( char *) arg);
+            break;
+
+        case ENOTDIR:
+            printf("ENOTDIR: %s: is not a directory\n", (char *) arg);
+            break;
+
+        case E2BIG:
+            printf("E2BIG: %s: \n", (char *) arg);
+            break;
+
+        case EINVAL:
+            printf("EINVAL: %s: \n", (char *) arg);
+            break;
+
+        case ENOEXEC:
+            printf("ENOEXEC: %s: \n", (char *) arg);
+            break;
+
+        case ENOMEM:
+            printf("ENOMEM: %s: \n", (char *) arg);
+            break;
+
+        case ETXTBSY:
+            printf("ETXTBSY: %s: \n", (char *) arg);
+            break;
+
+        default:
+            printf("SHOULD NOT FUCKING GET HERE IDIOT\n");
+            break;
+    }
+}
+
 int destroy_state(const struct dc_env *env, struct dc_error *err, void *arg) {
     struct state *state = arg;
-    free(state);
+//    free(state);
     return DC_FSM_EXIT;
 }
 

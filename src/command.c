@@ -9,8 +9,6 @@
 #include "shell.h"
 #include "shell_impl.h"
 #include "util.h"
-#include <dc_posix/dc_wordexp.h>
-
 int parse_command(const struct dc_env *env, struct dc_error *err,
                   struct state *state, struct command *command) {
 
@@ -21,6 +19,11 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
 
     int regex_result_err, regex_result_out, regex_result_in, wordexp_result;
     wordexp_t word;
+
+    regex_t err_regex;
+    regex_t out_regex;
+    regex_t in_regex;
+
 
     regex_result_err = regexec(state->err_redirect_regex,
                                state->command->line, 1,
@@ -72,7 +75,9 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
         free(redirect);
         state->command->line[reg_match.rm_so] = '\0';
     }
-
+//    regmatch_t regmatch;
+//
+//    regcomp(&in_regex, "[ \t\f\v]<.*", REG_EXTENDED);
     regex_result_in = regexec(state->in_redirect_regex,
                               state->command->line, 1,
                               NULL, 0);
@@ -97,27 +102,24 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
 
     wordexp_result = wordexp(state->command->line, &word, 0);
     if (wordexp_result == 0) {
-        if (word.we_wordc == 0) {
-            handle_error(env, err, state);
-        } else {
-            char *redirect = malloc(strlen(word.we_wordv[0]));
-            if (dc_error_has_error(err)) {
-                state->fatal_error = true;
-                return ERROR;
-            }
-            strcpy(redirect, word.we_wordv[0]);
+        state->command->argc = word.we_wordc;
+        state->command->argv = (char ** ) calloc(1, (word.we_wordc + 2) * sizeof(char *));
+        state->command->command = (char *) calloc(1, (strlen(word.we_wordv[0]) + 1));
+        for (size_t i = 1; i < word.we_wordc + 1; ++i) {
+            state->command->argv[i] = strdup(word.we_wordv[i - 1]);
         }
+        state->command->argv[word.we_wordc + 1] = NULL;
+        strcpy(state->command->command, word.we_wordv[0]);
+        state->command->command = strdup(word.we_wordv[0]);
+        wordfree(&word);
     } else {
-        printf("File or directory does not exist: %s\n", state->command->line);
-        printf("wordexp() failed: %s\n", strerror(wordexp_result));
+        //printf("File or directory does not exist: %s\n", state->command->line);
         handle_error(env, err, state);
     }
-    // this line causes a SIGSEGV ERROR
-    wordfree(&word);
     return EXECUTE_COMMANDS;
 }
 
-void redirect(const struct dc_env *env, const struct dc_error *err, struct command *command) {
+void redirect(const struct dc_env *env, struct dc_error *err, struct command *command) {
     if (dc_error_has_error(err)) {
         printf("function redirect in command.c 'close any open files and return'");
         return;
@@ -157,9 +159,8 @@ void redirect(const struct dc_env *env, const struct dc_error *err, struct comma
             fd = open(command->stderr_file, O_WRONLY | O_CREAT | O_APPEND | S_IRUSR | S_IWUSR);
         }
         if (fd == -1) {
-            //handle_error(DC_FILE_OPEN_FAILED, err);
+            handle_error(env, err, command);
             printf("redirect in command.c stderr_file");
-            //close file
             return;
         }
         dup2(fd, STDERR_FILENO);

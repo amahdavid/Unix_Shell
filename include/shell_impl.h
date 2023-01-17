@@ -22,4 +22,5 @@ int do_exit(const struct dc_env *env, struct dc_error *err, void *arg);
 
 int handle_error(const struct dc_env *env, struct dc_error *err, void *arg);
 
+int handle_run_error(const struct dc_error *env, void *arg);
 #endif //DC_SHELL_SHELL_IMPL_H

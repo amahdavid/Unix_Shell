@@ -24,7 +24,7 @@ struct command {
 int parse_command(const struct dc_env *env, struct dc_error *err,
         struct state *state, struct command *command);
 
-void redirect(const struct dc_env *env, const struct dc_error *err, struct command *command);
+void redirect(const struct dc_env *env, struct dc_error *err, struct command *command);
 
 
 #endif //DC_SHELL_COMMAND_H

@@ -33,7 +33,8 @@ int init_state(const struct dc_env *env, struct dc_error *err, void *arg) {
     state->in_redirect_regex = &in_regex;
     state->out_redirect_regex = &out_regex;
     state->err_redirect_regex = &err_regex;
-    state->path = NULL;
+    state->path = get_path(env, err, state);
+    get_prompt(env, err, state);
     state->command->line = NULL;
     state->command = NULL;
 
@@ -42,37 +43,26 @@ int init_state(const struct dc_env *env, struct dc_error *err, void *arg) {
         printf("DC HAS ERROR IN MAIN IF STATEMENT");
         return EXIT_FAILURE;
     }
-    char *path_env = getenv("PATH");
-    if (path_env != NULL) {
-        size_t path_len = strlen(path_env);
-        state->path = malloc(sizeof(char *) * (path_len + 1));
-        if (state->path == NULL) {
-            printf("error allocating memory for path: %s\n", strerror(errno));
-            state->fatal_error = true;
-            return EXIT_FAILURE;
-        }
-        char *token = strtok(path_env, ":");
-        int i = 0;
-        while (token != NULL) {
-            state->path[i++] = token;
-            token = strtok(NULL, ":");
-        }
-        state->path[i] = NULL;
-    }
+//    char *path_env = getenv("PATH");
+//    if (path_env != NULL) {
+//        size_t path_len = strlen(path_env);
+//        state->path = malloc(sizeof(char *) * (path_len + 1));
+//        if (state->path == NULL) {
+//            printf("error allocating memory for path: %s\n", strerror(errno));
+//            state->fatal_error = true;
+//            return EXIT_FAILURE;
+//        }
+//        char *token = strtok(path_env, ":");
+//        int i = 0;
+//        while (token != NULL) {
+//            state->path[i++] = token;
+//            token = strtok(NULL, ":");
+//        }
+//        state->path[i] = NULL;
+//    }
 
-    //get_path(env, err);
-
-    char *ps1_env = getenv("PS1");
-    if (ps1_env == NULL) {
-        state->prompt = (char *) malloc(sizeof(char) * 3);
-        strcpy(state->prompt, "$ ");
-    } else {
-        size_t ps1_len = strlen(ps1_env);
-        state->prompt = (char *) malloc(sizeof(char) * (ps1_len + 1));
-        strcpy(state->prompt, ps1_env);
-    }
-
-    //get_prompt(env, err);
+//    get_path(env, err, state);
+//    get_prompt(env, err, state);
     return READ_COMMANDS;
 }
 
@@ -102,6 +92,7 @@ int read_commands(const struct dc_env *env, struct dc_error *err, void *arg) {
     }
 
     dc_str_trim(env, state->current_line);
+    printf("Command: %s\n", state->current_line);
     line_len = strlen(state->current_line);
 
     if (line_len == 0) {
@@ -122,7 +113,7 @@ int separate_commands(const struct dc_env *env, struct dc_error *err, void *arg)
         return ERROR;
     }
 
-    state->command = calloc(1, sizeof(command));
+    state->command = calloc(2, sizeof(command));
 
     if (state->command == NULL) {
         return ERROR;
@@ -160,9 +151,12 @@ int parse_commands(const struct dc_env *env, struct dc_error *err, void *arg) {
 
 int execute_commands(const struct dc_env *env,
                      struct dc_error *err, void *arg) {
+
     struct state *state = (struct state *) arg;
+
     if (strcmp(state->command->command, "cd") == 0) {
         builtin_cd(env, err, (struct command *) state->command->command);
+
     } else if (strcmp(state->command->command, "exit") == 0) {
         return DC_FSM_EXIT;
     } else {
@@ -172,6 +166,7 @@ int execute_commands(const struct dc_env *env,
             state->fatal_error = true;
         }
     }
+
     printf("Exit code: %d\n", state->command->exit_code);
     if (state->fatal_error) {
         return ERROR;
@@ -193,6 +188,7 @@ int reset_state(const struct dc_env *env, struct dc_error *error, void *arg) {
 
 int handle_error(const struct dc_env *env, struct dc_error *err, void *arg) {
     struct state *state = arg;
+
     if (state->current_line == NULL) {
         printf("Internal error (%d) %s\n", state->command->exit_code, state->current_line);
     } else {
@@ -205,57 +201,46 @@ int handle_error(const struct dc_env *env, struct dc_error *err, void *arg) {
     return RESET_STATE;
 }
 
-int handle_run_error(const struct dc_env *env, void *arg) {
-    switch (errno) {
-        case EACCES:
-            printf("EACCES: %s: %s\n", (char *) arg, strerror(errno));
-            break;
-
-        case ELOOP:
-            printf("ELOOP: %s: %s\n", (char *) arg, strerror(errno));
-            break;
-
-        case ENAMETOOLONG:
-            printf("ENAMETOOLONG: %s: %s\n", (char *) arg, strerror(errno));
-            break;
-
-        case ENOENT:
-            printf("ENOTDIR: %s: does not exist\n", (char *) arg);
-            break;
-
-        case ENOTDIR:
-            printf("ENOTDIR: %s: is not a directory\n", (char *) arg);
-            break;
-
-        case E2BIG:
-            printf("E2BIG: %s: \n", (char *) arg);
-            break;
-
-        case EINVAL:
-            printf("EINVAL: %s: \n", (char *) arg);
-            break;
-
-        case ENOEXEC:
-            printf("ENOEXEC: %s: \n", (char *) arg);
-            break;
-
-        case ENOMEM:
-            printf("ENOMEM: %s: \n", (char *) arg);
-            break;
-
-        case ETXTBSY:
-            printf("ETXTBSY: %s: \n", (char *) arg);
-            break;
-
-        default:
-            printf("SHOULD NOT FUCKING GET HERE IDIOT\n");
-            break;
+int handle_run_error(const struct dc_env *env, struct dc_error *err, void *arg) {
+    struct state *state = (struct state *)arg;
+    if (dc_error_is_errno(err, E2BIG)){
+        fprintf(stdout, "[%s] Argument list too long\n", state->command->command);
+        return 1;
+    } else if (dc_error_is_errno(err, EACCES)){
+        fprintf(stdout, "[%s] Permission denied\n", state->command->command);
+        return 2;
+    } else if (dc_error_is_errno(err, EINVAL)){
+        fprintf(stdout, "[%s] Invalid argument\n", state->command->command);
+        return 3;
+    } else if (dc_error_is_errno(err, ELOOP)){
+        fprintf(stdout, "[%s] Too many symbolic links encountered\n", state->command->command);
+        return 4;
+    } else if (dc_error_is_errno(err, ENAMETOOLONG)){
+        fprintf(stdout, "[%s] File name too long\n", state->command->command);
+        return 5;
+    } else if (dc_error_is_errno(err, ENOENT)){
+        fprintf(stdout, "[%s] No such file or directory\n", state->command->command);
+        return 127;
+    } else if (dc_error_is_errno(err, ENOTDIR)){
+        fprintf(stdout, "[%s] Not a directory\n", state->command->command);
+        return 6;
+    } else if (dc_error_is_errno(err, ENOEXEC)){
+        fprintf(stdout, "[%s] Exec format error\n", state->command->command);
+        return 7;
+    } else if (dc_error_is_errno(err, ENOMEM)){
+        fprintf(stdout, "[%s] Out of memory\n", state->command->command);
+        return 8;
+    } else if (dc_error_is_errno(err, ETXTBSY)){
+        fprintf(stdout, "[%s] Text file busy\n", state->command->command);
+        return 9;
+    } else{
+        return 125;
     }
 }
 
 int destroy_state(const struct dc_env *env, struct dc_error *err, void *arg) {
     struct state *state = arg;
-//    free(state);
+    free(state);
     return DC_FSM_EXIT;
 }
 

@@ -6,9 +6,9 @@
 #include <bits/types/FILE.h>
 #include "state.h"
 
-const char *get_prompt(const struct dc_env *env, struct dc_error *err);
+char *get_prompt(const struct dc_env *env, struct dc_error *err, void *arg);
 
-char *get_path(const struct dc_env *env, struct dc_error *err);
+char **get_path(const struct dc_env *env, struct dc_error *err, void *arg);
 
 char *expand_path(const struct dc_env *env, struct dc_error *err, char *file);
 

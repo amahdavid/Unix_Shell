@@ -62,12 +62,12 @@ int run_shell(const struct dc_env *env, struct dc_error *err) {
 }
 
 int run(const struct dc_env *env, struct dc_error *err, struct command *command, char **path) {
-    int ret;
+
     if (strstr(command->command, "/") != NULL) {
         command->argv[0] = command->command;
         execve(command->command, command->argv, NULL);
     } else {
-        if (path == NULL) {
+        if (path[0] == NULL) {
             DC_ERROR_RAISE_CHECK(err);
             fprintf(stderr, "Error: %s\n", strerror(ENOENT));
         } else {

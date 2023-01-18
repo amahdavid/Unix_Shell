@@ -1,5 +1,5 @@
 add_compile_definitions(_POSIX_C_SOURCE=200809L _XOPEN_SOURCE=700)
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.22)
 project(dc_shell)
 set(TEST_HEADER_LIST
         tests.h

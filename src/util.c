@@ -5,32 +5,58 @@
 #include <malloc.h>
 #include <stdlib.h>
 #include "shell.h"
-char *get_path(const struct dc_env *env, struct dc_error *err)
+#include "util.h"
+char **get_path(const struct dc_env *env, struct dc_error *err, void *arg)
 {
-
     char *path_env = getenv("PATH");
-    char **path;
-    if (path_env != NULL){
-        path = malloc(sizeof (char *) * strlen(path_env));
-        char *token = strtok(path_env, ":");
-        int i = 0;
-        while (token != NULL){
-            path[i++] = token;
-            token = strtok(NULL, ":");
-        }
+    const char * delimiter = ":";
+    char * tokenized_path = strtok(path_env, delimiter);
+    char **path = NULL;
+    unsigned rows = 0;
+    while (tokenized_path){
+        path = realloc(path, (rows + 1) * sizeof(path));
+        path[rows] = malloc(strlen(tokenized_path) + 1);
+        strcpy(path[rows], tokenized_path);
+        rows++;
+        tokenized_path = strtok(NULL, delimiter);
     }
-    // should it be return path or path env?
-    return path_env;
+    path = realloc(path, (rows + 1) * sizeof(path));
+    path[rows] = NULL;
+    return path;
+
+//    struct state * state = (struct state * )arg;
+//    char *path_env = getenv("PATH");
+//    if (path_env != NULL) {
+//        size_t path_len = strlen(path_env);
+//        state->path = malloc(sizeof(char *) * (path_len + 1));
+//        if (state->path == NULL) {
+//            printf("error allocating memory for path: %s\n", strerror(errno));
+//            state->fatal_error = true;
+//            //return EXIT_FAILURE;
+//        }
+//        char *token = strtok(path_env, ":");
+//        int i = 0;
+//        while (token != NULL) {
+//            state->path[i++] = token;
+//            token = strtok(NULL, ":");
+//        }
+//        state->path[i] = NULL;
+//    }
+//    return  state->path;
 }
 
-const char *get_prompt(const struct dc_env *env, struct dc_error *err){
+char *get_prompt(const struct dc_env *env, struct dc_error *err, void *arg){
+    struct state * state = (struct state * )arg;
     char *ps1_env = getenv("PS1");
-    if (ps1_env == NULL){
-        return "$ ";
-    } else
-    {
-        return ps1_env;
+    if (ps1_env == NULL) {
+        state->prompt = (char *) malloc(sizeof(char) * 3);
+        strcpy(state->prompt, "$ ");
+    } else {
+        size_t ps1_len = strlen(ps1_env);
+        state->prompt = (char *) malloc(sizeof(char) * (ps1_len + 1));
+        strcpy(state->prompt, ps1_env);
     }
+    return ps1_env;
 }
 
 char **parse_path(const struct dc_env *env, struct dc_error *err, char *path_str){

@@ -8,9 +8,10 @@
 #include "shell.h"
 #include "shell_impl.h"
 
-void execute(const struct dc_env *env, struct dc_error *err, struct state * state, char ** path) {
+void execute(const struct dc_env *env, struct dc_error *err, struct state *state, char **path) {
 
     pid_t child_pid = fork();
+    int status = 0;
 
     if (child_pid == 0) {
         redirect(env, err, state);
@@ -19,13 +20,12 @@ void execute(const struct dc_env *env, struct dc_error *err, struct state * stat
         }
 
         run(env, err, state->command, path);
-        int status = handle_run_error(env, state);
-
+        //printf("before\n");
+        status = handle_run_error(env, err, state->command->command);
+        //printf("after\n");
         if (status != EXIT_SUCCESS) {
-            handle_run_error(env, state->command->command);
-            exit(status);
+             exit(status);
         }
-
         execv(state->command->command, state->command->argv);
         exit(126);
 

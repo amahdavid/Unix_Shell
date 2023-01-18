@@ -102,6 +102,7 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
             free(redirect);
             return ERROR;
         }
+
         free(redirect);
         state->command->line[reg_match.rm_so] = '\0';
     }
@@ -120,11 +121,10 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
         state->command->argv[word.we_wordc + 1] = NULL;
 //        strcpy(state->command->command, word.we_wordv[0]);
         state->command->command = strdup(word.we_wordv[0]);
-//state->command->command = strdup(word.we_wordv[0]);
         wordfree(&word);
 
     } else {
-        //printf("File or directory does not exist: %s\n", state->command->line);
+        printf("File or directory does not exist: %s\n", state->command->line);
         handle_error(env, err, state);
     }
     return EXECUTE_COMMANDS;

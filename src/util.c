@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include "shell.h"
 #include "util.h"
+
 char **get_path(const struct dc_env *env, struct dc_error *err, void *arg)
 {
     char *path_env = getenv("PATH");
@@ -23,26 +24,6 @@ char **get_path(const struct dc_env *env, struct dc_error *err, void *arg)
     path = realloc(path, (rows + 1) * sizeof(path));
     path[rows] = NULL;
     return path;
-
-//    struct state * state = (struct state * )arg;
-//    char *path_env = getenv("PATH");
-//    if (path_env != NULL) {
-//        size_t path_len = strlen(path_env);
-//        state->path = malloc(sizeof(char *) * (path_len + 1));
-//        if (state->path == NULL) {
-//            printf("error allocating memory for path: %s\n", strerror(errno));
-//            state->fatal_error = true;
-//            //return EXIT_FAILURE;
-//        }
-//        char *token = strtok(path_env, ":");
-//        int i = 0;
-//        while (token != NULL) {
-//            state->path[i++] = token;
-//            token = strtok(NULL, ":");
-//        }
-//        state->path[i] = NULL;
-//    }
-//    return  state->path;
 }
 
 char *get_prompt(const struct dc_env *env, struct dc_error *err, void *arg){
@@ -79,13 +60,12 @@ char **parse_path(const struct dc_env *env, struct dc_error *err, char *path_str
     return path;
 }
 
-void do_reset_state(const struct dc_env *env,
+int do_reset_state(const struct dc_env *env,
                     struct dc_error *err, struct state *state) {
     free(state->current_line);
     state->current_line = NULL;
     memset(err, 0, sizeof(state));
-    // should return type be void or int?
-    //return READ_COMMANDS;
+    return READ_COMMANDS;
 }
 
 char *expand_path(const struct dc_env *env, struct dc_error *err, char *file){

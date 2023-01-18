@@ -5,9 +5,13 @@
 #include <stdbool.h>
 #include <dc_error/error.h>
 #include <dc_env/env.h>
+#include <dc_posix/dc_wordexp.h>
+#include <string.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "state.h"
 
-// use calloc when checking sizeof command struct "struct command"
 struct command {
     char *line;
     char *command;

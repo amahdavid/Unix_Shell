@@ -7,7 +7,7 @@
 #include "command.h"
 enum shell_states
 {
-    INIT_STATE = DC_FSM_USER_START,    // 2
+    INIT_STATE = DC_FSM_USER_START,
     READ_COMMANDS,
     ERROR,
     RESET_STATE,

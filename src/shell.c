@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <dc_posix/dc_unistd.h>
 #include "shell.h"
 #include "shell_impl.h"
 
@@ -65,7 +66,7 @@ int run(const struct dc_env *env, struct dc_error *err, struct command *command,
 
     if (strstr(command->command, "/") != NULL) {
         command->argv[0] = command->command;
-        execve(command->command, command->argv, NULL);
+        dc_execve(env, err, command->command, command->argv, NULL);
     } else {
         if (path[0] == NULL) {
             DC_ERROR_RAISE_CHECK(err);

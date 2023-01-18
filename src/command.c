@@ -1,9 +1,3 @@
-#include <dc_error/error.h>
-#include <string.h>
-#include <wordexp.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include "command.h"
 #include "shell.h"
 #include "shell_impl.h"
@@ -107,7 +101,7 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
         state->command->line[reg_match.rm_so] = '\0';
     }
 
-    wordexp_result = wordexp(state->command->line, &word, 0);
+    wordexp_result = dc_wordexp(env, err, state->command->line, &word, 0);
     if (wordexp_result == 0) {
 
         state->command->argc = word.we_wordc;
@@ -119,7 +113,6 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
         }
 
         state->command->argv[word.we_wordc + 1] = NULL;
-//        strcpy(state->command->command, word.we_wordv[0]);
         state->command->command = strdup(word.we_wordv[0]);
         wordfree(&word);
 

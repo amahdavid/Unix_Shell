@@ -4,14 +4,14 @@
 #include <stdlib.h>
 #include "shell.h"
 
-int main(int argc, char *argv[]) {
+int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[]) {
     dc_env_tracer tracer;
     struct dc_env *env;
     struct dc_error *err;
-    int return_val = 0;
+    //int return_val = 0;
 
     // set the tracer to trace through the function calls
-    // tracer = dc_env-default_tracer;
+    //tracer = dc_env-default_tracer;
     tracer = NULL;
 
     err = dc_error_create(false);
@@ -23,6 +23,5 @@ int main(int argc, char *argv[]) {
     // when I input exit it causes a sigsegv error here
     run_shell(env, err);
 
-//    return return_val;
     return EXIT_SUCCESS;
 }

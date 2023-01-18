@@ -1,51 +1,42 @@
 #include <dc_env/env.h>
 #include <dc_error/error.h>
+#include <dc_posix/dc_unistd.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <string.h>
 #include "command.h"
+#include "builtins.h"
 
-void builtin_cd(const struct dc_env *env, struct dc_error *err, struct command *command) {
+void builtin_cd(const struct dc_env *env, struct dc_error *err, void *arg) {
 
-    char path[1024];
-    char home[1024];
-
-    snprintf(home, sizeof(home), "%s", getenv("HOME"));
-
-    if (command->argv[1] == NULL) {
-        snprintf(path, sizeof(path), "%s", home);
+    struct state *state = (struct state *) arg;
+    char *path;
+    if (state->command->argv[1] == NULL) {
+        dc_expand_path(env, err, &path, "~/");
+        dc_chdir(env, err, path);
     } else {
-        snprintf(path, sizeof(path), "%s", command->argv[1]);
+        dc_chdir(env, err, state->command->argv[1]);
+        path = strdup(state->command->argv[1]);
     }
 
-    char *expanded_path = realpath(path, NULL);
-    int ret_val = chdir(expanded_path);
+    if (dc_error_has_error(err)) {
+        if (dc_error_is_errno(err, EACCES)) {
+            fprintf(stdout, "%s Permission denied\n", path);
 
-    if (ret_val == -1) {
-        command->exit_code = 1;
-        switch (errno) {
-            case EACCES:
-                printf("EACCES: %s: %s\n", expanded_path, strerror(errno));
-                break;
+        } else if (dc_error_is_errno(err, ELOOP)) {
+            fprintf(stdout, "%s Too many symbolic links encountered\n", path);
 
-            case ELOOP:
-                printf("ELOOP: %s: %s\n", expanded_path, strerror(errno));
-                break;
+        } else if (dc_error_is_errno(err, ENAMETOOLONG)) {
+            fprintf(stdout, "%s File name too long\n", path);
 
-            case ENAMETOOLONG:
-                printf("ENAMETOOLONG: %s: %s\n", expanded_path, strerror(errno));
-                break;
+        } else if (dc_error_is_errno(err, ENONET)) {
+            fprintf(stdout, "%s No such file or directory\n", path);
 
-            case ENOENT:
-                printf("ENOTDIR: %s: does not exist\n", expanded_path);
-                break;
-
-            case ENOTDIR:
-                printf("ENOTDIR: %s: is not a directory\n", expanded_path);
-                break;
-
-            default:
-                break;
+        } else if (dc_error_is_errno(err, ENOTDIR)) {
+            fprintf(stdout, "%s Not a directory\n", path);
         }
-    }
+        state->command->exit_code = 1;
+    } else
+        state->command->exit_code = 0;
+
+    free(path);
 }

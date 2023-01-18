@@ -50,10 +50,8 @@ int run_shell(const struct dc_env *env, struct dc_error *err) {
             {DESTROY_STATE,     DC_FSM_EXIT, NULL},
     };
     dc_error_init(err, false);
-    //dc_env_init();
     ret_val = EXIT_SUCCESS;
     fsm_info = dc_fsm_info_create(env, err, "shell");
-    //dc_fsm_info_set_bad_change_state(fsm_info, bad_change_state);
     if (dc_error_has_no_error(err)) {
         int from_state, to_state;
         struct state state;
@@ -63,32 +61,28 @@ int run_shell(const struct dc_env *env, struct dc_error *err) {
     return ret_val;
 }
 
-int run(const struct dc_env *env, struct dc_error *err, struct command *command, const char *path) {
+int run(const struct dc_env *env, struct dc_error *err, struct command *command, char **path) {
     int ret;
-    if (strchr(command->command, '/') != NULL) {
+    if (strstr(command->command, "/") != NULL) {
         command->argv[0] = command->command;
         execve(command->command, command->argv, NULL);
     } else {
         if (path == NULL) {
-            // NOT SURE
-            //err = (struct dc_error *) ENOENT;
-            //dc_error_has_error(err);
+            DC_ERROR_RAISE_CHECK(err);
             fprintf(stderr, "Error: %s\n", strerror(ENOENT));
-            return ENOENT;
         } else {
-            for (int i = 0; command->argv[i] != NULL; i++) {
-                snprintf(command->command, sizeof(command), "%s/%s",
-                         command->argv[i], command->command);
-                command->argv[0] = command->command;
-                ret = execv(command->command, command->argv);
-                if (ret == -1 && errno != ENOENT)
-                    break;
+            for (char * new_com = *path; new_com; new_com = *path++) {
+                strcat(new_com, "/");
+                strcat(new_com, command->command);
+
+                command->argv[0] = new_com;
+                execv(new_com, command->argv);
+                if (dc_error_has_error(err)){
+                    if (!dc_error_is_errno(err, ENOENT))
+                        break;
+                }
             }
         }
-    }
-    if (ret == -1) {
-        fprintf(stderr, "Error: %s\n", strerror(errno));
-        return errno;
     }
 }
 

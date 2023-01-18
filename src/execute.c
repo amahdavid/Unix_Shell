@@ -8,24 +8,30 @@
 #include "shell.h"
 #include "shell_impl.h"
 
-void execute(const struct dc_env *env, struct dc_error *err, struct command *command, char *path) {
+void execute(const struct dc_env *env, struct dc_error *err, struct state * state, char ** path) {
+
     pid_t child_pid = fork();
+
     if (child_pid == 0) {
-        redirect(env, err, command);
-        if (!dc_error_has_error(err)) {
+        redirect(env, err, state);
+        if (dc_error_has_error(err)) {
             exit(126);
         }
-        int status = run(env, err, command, path);
+
+        run(env, err, state->command, path);
+        int status = handle_run_error(env, state);
+
         if (status != EXIT_SUCCESS) {
-            handle_run_error(err, command->command);
-            printf("execute function in execute.c");
+            handle_run_error(env, state->command->command);
             exit(status);
         }
-        execv(command->command, command->argv);
+
+        execv(state->command->command, state->command->argv);
         exit(126);
+
     } else {
         int exit_val;
         waitpid(child_pid, &exit_val, 0);
-        command->exit_code = exit_val;
+        state->command->exit_code = exit_val;
     }
 }

@@ -6,16 +6,21 @@
 #include "command.h"
 
 void builtin_cd(const struct dc_env *env, struct dc_error *err, struct command *command) {
+
     char path[1024];
     char home[1024];
+
     snprintf(home, sizeof(home), "%s", getenv("HOME"));
+
     if (command->argv[1] == NULL) {
         snprintf(path, sizeof(path), "%s", home);
     } else {
         snprintf(path, sizeof(path), "%s", command->argv[1]);
     }
+
     char *expanded_path = realpath(path, NULL);
     int ret_val = chdir(expanded_path);
+
     if (ret_val == -1) {
         command->exit_code = 1;
         switch (errno) {

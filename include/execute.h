@@ -5,6 +5,6 @@
 #include <dc_error/error.h>
 #include "command.h"
 
-void execute(const struct dc_env *env, struct dc_error *err, struct command *command, char *path);
+void execute(const struct dc_env *env, struct dc_error *err, struct state * state, char ** path);
 
 #endif //DC_SHELL_EXECUTE_H

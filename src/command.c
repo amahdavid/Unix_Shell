@@ -1,4 +1,3 @@
-
 #include <dc_error/error.h>
 #include <string.h>
 #include <wordexp.h>
@@ -9,6 +8,7 @@
 #include "shell.h"
 #include "shell_impl.h"
 #include "util.h"
+
 int parse_command(const struct dc_env *env, struct dc_error *err,
                   struct state *state, struct command *command) {
 
@@ -20,19 +20,16 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
     int regex_result_err, regex_result_out, regex_result_in, wordexp_result;
     wordexp_t word;
 
-    regex_t err_regex;
-    regex_t out_regex;
-    regex_t in_regex;
-
-
     regex_result_err = regexec(state->err_redirect_regex,
                                state->command->line, 1,
                                NULL, 0);
     if (regex_result_err == 0) {
+
         regmatch_t reg_match;
         regexec(state->err_redirect_regex, state->command->line, 1, &reg_match, 0);
         size_t redirect_len = reg_match.rm_eo - reg_match.rm_so;
         char *redirect = strndup(state->command->line + reg_match.rm_so, redirect_len);
+
         if (redirect == NULL) {
             state->fatal_error = true;
             return ERROR;
@@ -40,7 +37,9 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
         if (strstr(redirect, ">>")) {
             state->command->stderr_overwrite = true;
         }
+
         state->command->stderr_file = expand_path(env, err, redirect);
+
         if (state->command->stderr_file == NULL) {
             state->fatal_error = true;
             free(redirect);
@@ -55,10 +54,12 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
                                state->command->line, 1,
                                NULL, 0);
     if (regex_result_out == 0) {
+
         regmatch_t reg_match;
         regexec(state->out_redirect_regex, state->command->line, 1, &reg_match, 0);
         size_t redirect_len = reg_match.rm_eo - reg_match.rm_so;
         char *redirect = strndup(state->command->line + reg_match.rm_so, redirect_len);
+
         if (redirect == NULL) {
             state->fatal_error = true;
             return ERROR;
@@ -66,31 +67,36 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
         if (strstr(redirect, ">>")) {
             state->command->stdout_overwrite = true;
         }
+
         state->command->stdout_file = expand_path(env, err, redirect);
+
         if (state->command->stdout_file == NULL) {
             state->fatal_error = true;
             free(redirect);
             return ERROR;
         }
+
         free(redirect);
         state->command->line[reg_match.rm_so] = '\0';
     }
-//    regmatch_t regmatch;
-//
-//    regcomp(&in_regex, "[ \t\f\v]<.*", REG_EXTENDED);
+
     regex_result_in = regexec(state->in_redirect_regex,
                               state->command->line, 1,
                               NULL, 0);
     if (regex_result_in == 0) {
+
         regmatch_t reg_match;
         regexec(state->in_redirect_regex, state->command->line, 1, &reg_match, 0);
         size_t redirect_len = reg_match.rm_eo - reg_match.rm_so;
         char *redirect = strndup(state->command->line + reg_match.rm_so, redirect_len);
+
         if (redirect == NULL) {
             state->fatal_error = true;
             return ERROR;
         }
+
         state->command->stdin_file = expand_path(env, err, redirect);
+
         if (state->command->stdin_file == NULL) {
             state->fatal_error = true;
             free(redirect);
@@ -102,16 +108,21 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
 
     wordexp_result = wordexp(state->command->line, &word, 0);
     if (wordexp_result == 0) {
+
         state->command->argc = word.we_wordc;
-        state->command->argv = (char ** ) calloc(1, (word.we_wordc + 2) * sizeof(char *));
+        state->command->argv = (char **) calloc(1, (word.we_wordc + 2) * sizeof(char *));
         state->command->command = (char *) calloc(1, (strlen(word.we_wordv[0]) + 1));
+
         for (size_t i = 1; i < word.we_wordc + 1; ++i) {
             state->command->argv[i] = strdup(word.we_wordv[i - 1]);
         }
+
         state->command->argv[word.we_wordc + 1] = NULL;
-        strcpy(state->command->command, word.we_wordv[0]);
+//        strcpy(state->command->command, word.we_wordv[0]);
         state->command->command = strdup(word.we_wordv[0]);
+//state->command->command = strdup(word.we_wordv[0]);
         wordfree(&word);
+
     } else {
         //printf("File or directory does not exist: %s\n", state->command->line);
         handle_error(env, err, state);
@@ -119,51 +130,59 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
     return EXECUTE_COMMANDS;
 }
 
-void redirect(const struct dc_env *env, struct dc_error *err, struct command *command) {
+int redirect(const struct dc_env *env, struct dc_error *err, void *arg) {
+
+    struct state *state = (struct state *) arg;
+    FILE *file;
     if (dc_error_has_error(err)) {
-        printf("function redirect in command.c 'close any open files and return'");
-        return;
-    }
-    if (command->stdin_file != NULL) {
-        int fd = open(command->stdin_file, O_RDONLY);
-        if (fd == -1) {
-            //handle_error(DC_FILE_OPEN_FAILED, err);
-            // close files
-            return;
-        }
-        dup2(fd, STDIN_FILENO);
-        close(fd);
+        fclose(file);
+        return ERROR;
     }
 
-    if (command->stdout_file != NULL) {
-        int fd;
-        if (command->stderr_overwrite) {
-            fd = open(command->stdout_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-        } else {
-            fd = open(command->stdout_file, O_WRONLY | O_CREAT | O_APPEND | S_IRUSR | S_IWUSR);
+    if (state->command->stdin_file != NULL) {
+        file = fopen(state->command->stdin_file, O_RDONLY);
+        if (file == NULL) {
+            if (state->command->stdout_file != NULL) {
+                fclose(file);
+            }
+            if (state->command->stderr_file != NULL) {
+                fclose(file);
+            }
+            return ERROR;
         }
-        if (fd == -1) {
-            //handle_error(DC_FILE_OPEN_FAILED, err);
-            printf("redirect in command.c stdout.file");
-            //close file
-            return;
-        }
-        dup2(fd, STDOUT_FILENO);
+        dup2(fileno(file), STDIN_FILENO);
+        fclose(file);
     }
 
-    if (command->stderr_file != NULL) {
-        int fd;
-        if (command->stderr_overwrite) {
-            fd = open(command->stderr_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+    if (state->command->stdout_file != NULL) {
+        if (state->command->stderr_overwrite) {
+            file = fopen(state->command->stdout_file, "w");
         } else {
-            fd = open(command->stderr_file, O_WRONLY | O_CREAT | O_APPEND | S_IRUSR | S_IWUSR);
+            file = fopen(state->command->stdout_file, "a");
         }
-        if (fd == -1) {
-            handle_error(env, err, command);
+        if (file == NULL) {
+            if (state->command->stderr_file != NULL) {
+                fclose(file);
+            }
+            return ERROR;
+        }
+        dup2(fileno(file), STDOUT_FILENO);
+        fclose(file);
+    }
+
+    if (state->command->stderr_file != NULL) {
+        if (state->command->stderr_overwrite) {
+            file = fopen(state->command->stderr_file, "w");
+        } else {
+            file = fopen(state->command->stderr_file, "a");
+        }
+        if (file == NULL) {
+            handle_error(env, err, state->command);
             printf("redirect in command.c stderr_file");
-            return;
+            return ERROR;
         }
-        dup2(fd, STDERR_FILENO);
+        dup2(fileno(file), STDERR_FILENO);
+        fclose(file);
     }
 }
 

@@ -20,6 +20,6 @@ enum shell_states
 
 int run_shell(const struct dc_env *env, struct dc_error *err);
 
-int run(const struct dc_env *env, struct dc_error *err, struct command *command, const char *path);
+int run(const struct dc_env *env, struct dc_error *err, struct command *command, char **path);
 
 #endif //DC_SHELL_SHELL_H

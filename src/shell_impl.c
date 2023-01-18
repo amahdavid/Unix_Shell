@@ -15,8 +15,6 @@
 #include <dc_util/strings.h>
 #include <dc_util/filesystem.h>
 
-#define BUF_SIZE 4000
-
 typedef struct command command;
 regex_t err_regex;
 regex_t in_regex;
@@ -80,25 +78,25 @@ int init_state(const struct dc_env *env, struct dc_error *err, void *arg) {
 
 
 int read_commands(const struct dc_env *env, struct dc_error *err, void *arg) {
-    struct state *state = (struct state *)arg;
+    struct state *state = (struct state *) arg;
     state->fatal_error = 0;
     size_t line_len = 0;
 
-    char * cur_dir = dc_get_working_dir(env, err);
-    if (dc_error_has_error(err)){
+    char *cur_dir = dc_get_working_dir(env, err);
+    if (dc_error_has_error(err)) {
         state->fatal_error = true;
         return ERROR;
     }
 
     fprintf(stdout, "[%s] %s", cur_dir, state->prompt);
 
-    state->current_line = malloc(sizeof(char ));
-    if (dc_error_has_error(err)){
+    state->current_line = malloc(sizeof(char));
+    if (dc_error_has_error(err)) {
         state->fatal_error = true;
     }
 
     dc_getline(env, err, &state->current_line, &line_len, stdin);
-    if (dc_error_has_error(err)){
+    if (dc_error_has_error(err)) {
         state->fatal_error = true;
         return ERROR;
     }
@@ -106,7 +104,7 @@ int read_commands(const struct dc_env *env, struct dc_error *err, void *arg) {
     dc_str_trim(env, state->current_line);
     line_len = strlen(state->current_line);
 
-    if (line_len == 0){
+    if (line_len == 0) {
         return RESET_STATE;
     }
 
@@ -137,8 +135,6 @@ int separate_commands(const struct dc_env *env, struct dc_error *err, void *arg)
         return ERROR;
     }
 
-    //strcpy(state->command->line, state->current_line);
-
     state->command->command = NULL;
     state->command->exit_code = 0;
     state->command->argv = NULL;
@@ -164,13 +160,14 @@ int parse_commands(const struct dc_env *env, struct dc_error *err, void *arg) {
 
 int execute_commands(const struct dc_env *env,
                      struct dc_error *err, void *arg) {
-    struct state *state = (struct state *)arg;
+    struct state *state = (struct state *) arg;
     if (strcmp(state->command->command, "cd") == 0) {
         builtin_cd(env, err, (struct command *) state->command->command);
     } else if (strcmp(state->command->command, "exit") == 0) {
         return DC_FSM_EXIT;
     } else {
-        execute(env, err, (struct command *) state->command->command, (char *) state->path);
+        /*(struct command *) state->command->command,*/
+        execute(env, err, state, state->path);
         if (dc_error_has_error(err)) {
             state->fatal_error = true;
         }
@@ -208,7 +205,7 @@ int handle_error(const struct dc_env *env, struct dc_error *err, void *arg) {
     return RESET_STATE;
 }
 
-int handle_run_error(const struct dc_error *env, void *arg){
+int handle_run_error(const struct dc_env *env, void *arg) {
     switch (errno) {
         case EACCES:
             printf("EACCES: %s: %s\n", (char *) arg, strerror(errno));
@@ -223,7 +220,7 @@ int handle_run_error(const struct dc_error *env, void *arg){
             break;
 
         case ENOENT:
-            printf("ENOTDIR: %s: does not exist\n",( char *) arg);
+            printf("ENOTDIR: %s: does not exist\n", (char *) arg);
             break;
 
         case ENOTDIR:

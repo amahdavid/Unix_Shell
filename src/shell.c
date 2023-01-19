@@ -9,10 +9,10 @@
 #include "shell.h"
 #include "shell_impl.h"
 
-int run_shell(const struct dc_env *env, struct dc_error *err) {
+int run_shell(struct dc_env *env, struct dc_error *err) {
     int ret_val;
-    dc_env_tracer tracer;
     struct dc_fsm_info *fsm_info;
+
     static struct dc_fsm_transition transitions[] = {
             {DC_FSM_INIT,       INIT_STATE,        init_state},
 
@@ -51,12 +51,14 @@ int run_shell(const struct dc_env *env, struct dc_error *err) {
             {DESTROY_STATE,     DC_FSM_EXIT, NULL},
     };
     dc_error_init(err, false);
+    dc_env_set_tracer(env, NULL);
     ret_val = EXIT_SUCCESS;
     fsm_info = dc_fsm_info_create(env, err, "shell");
     if (dc_error_has_no_error(err)) {
         int from_state, to_state;
         struct state state;
-        ret_val = dc_fsm_run(env, err, fsm_info, &from_state, &to_state, &state, transitions);
+        ret_val = dc_fsm_run(env, err, fsm_info, &from_state,
+                             &to_state, &state, transitions);
         dc_fsm_info_destroy(env, &fsm_info);
     }
     return ret_val;

@@ -20,7 +20,6 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
     dc_error_init(err, false);
     dc_env_set_tracer(env, tracer);
 
-    // when I input exit it causes a sigsegv error here
     run_shell(env, err);
 
     return EXIT_SUCCESS;

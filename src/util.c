@@ -64,7 +64,7 @@ int do_reset_state(const struct dc_env *env,
                     struct dc_error *err, struct state *state) {
     free(state->current_line);
     state->current_line = NULL;
-    memset(err, 0, sizeof(state));
+    memset(err, 0, sizeof(state ));
     return READ_COMMANDS;
 }
 
@@ -72,7 +72,6 @@ char *expand_path(const struct dc_env *env, struct dc_error *err, char *file){
     if (file[0] == '~'){
         char *home_directory = getenv("HOME");
         if (home_directory == NULL){
-            // handle error
             printf("ERROR: HOME environment variable not found\n");
             return NULL;
         }

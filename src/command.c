@@ -2,6 +2,7 @@
 #include "shell.h"
 #include "shell_impl.h"
 #include "util.h"
+#include <dc_posix/dc_unistd.h>
 
 int parse_command(const struct dc_env *env, struct dc_error *err,
                   struct state *state, struct command *command) {
@@ -40,7 +41,6 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
             return ERROR;
         }
         free(redirect);
-        // INSERT NULL TERMINATOR BEFORE REDIRECT
         state->command->line[reg_match.rm_so] = '\0';
     }
 
@@ -143,8 +143,7 @@ int redirect(const struct dc_env *env, struct dc_error *err, void *arg) {
             }
             return ERROR;
         }
-        dup2(fileno(file), STDIN_FILENO);
-        fclose(file);
+        dc_dup2(env, err, fileno(file), STDIN_FILENO);
     }
 
     if (state->command->stdout_file != NULL) {
@@ -159,8 +158,7 @@ int redirect(const struct dc_env *env, struct dc_error *err, void *arg) {
             }
             return ERROR;
         }
-        dup2(fileno(file), STDOUT_FILENO);
-        fclose(file);
+        dc_dup2(env, err, fileno(file), STDOUT_FILENO);
     }
 
     if (state->command->stderr_file != NULL) {
@@ -174,8 +172,7 @@ int redirect(const struct dc_env *env, struct dc_error *err, void *arg) {
             printf("redirect in command.c stderr_file");
             return ERROR;
         }
-        dup2(fileno(file), STDERR_FILENO);
-        fclose(file);
+        dc_dup2(env, err, fileno(file), STDERR_FILENO);
     }
 }
 

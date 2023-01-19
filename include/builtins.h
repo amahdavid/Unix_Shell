@@ -6,6 +6,6 @@
 #include <dc_util/path.h>
 #include "command.h"
 
-void builtin_cd(const struct dc_env *env, struct dc_error *err, void *arg);
+void builtin_cd(const struct dc_env *env, struct dc_error *err, struct state *state);
 
 #endif //DC_SHELL_BUILTINS_H

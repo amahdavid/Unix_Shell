@@ -6,9 +6,8 @@
 #include "command.h"
 #include "builtins.h"
 
-void builtin_cd(const struct dc_env *env, struct dc_error *err, void *arg) {
+void builtin_cd(const struct dc_env *env, struct dc_error *err, struct state *state) {
 
-    struct state *state = (struct state *) arg;
     char *path;
     if (state->command->argv[1] == NULL) {
         dc_expand_path(env, err, &path, "~/");

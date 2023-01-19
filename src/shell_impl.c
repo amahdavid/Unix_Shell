@@ -137,7 +137,7 @@ int execute_commands(const struct dc_env *env,
     if (strcmp(state->command->command, "cd") == 0) {
         builtin_cd(env, err, state);
     } else if (strcmp(state->command->command, "exit") == 0) {
-        return DC_FSM_EXIT;
+        return EXIT;
     } else {
         execute(env, err, state, state->path);
         if (dc_error_has_error(err)) {
@@ -168,7 +168,7 @@ int handle_error(const struct dc_env *env, struct dc_error *err, void *arg) {
     struct state *state = arg;
 
     if (state->current_line == NULL) {
-        printf("Internal error (%d) %s\n", state->command->exit_code, state->current_line);
+        printf("Internal error (%d)\n", state->command->exit_code);
     } else {
         printf("Internal error (%d) %s: %s\n",
                state->command->exit_code, state->command->command, state->current_line);
@@ -218,7 +218,9 @@ int handle_run_error(const struct dc_env *env, struct dc_error *err, void *arg) 
 
 int destroy_state(const struct dc_env *env, struct dc_error *err, void *arg) {
     struct state *state = arg;
-    free(state);
+    if (state){
+        free(state);
+    }
     return DC_FSM_EXIT;
 }
 

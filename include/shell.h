@@ -18,7 +18,7 @@ enum shell_states
     DESTROY_STATE,
 };
 
-int run_shell(const struct dc_env *env, struct dc_error *err);
+int run_shell(struct dc_env *env, struct dc_error *err);
 
 int run(const struct dc_env *env, struct dc_error *err, struct command *command, char **path);
 

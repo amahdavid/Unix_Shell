@@ -60,12 +60,12 @@ char **parse_path(const struct dc_env *env, struct dc_error *err, char *path_str
     return path;
 }
 
-int do_reset_state(const struct dc_env *env,
+void do_reset_state(const struct dc_env *env,
                     struct dc_error *err, struct state *state) {
+
     free(state->current_line);
     state->current_line = NULL;
-    memset(err, 0, sizeof(state ));
-    return READ_COMMANDS;
+    memset(err, 0, sizeof(state));
 }
 
 char *expand_path(const struct dc_env *env, struct dc_error *err, char *file){
@@ -89,4 +89,21 @@ char *expand_path(const struct dc_env *env, struct dc_error *err, char *file){
         // file path does not start with ~, return original path
         return file;
     }
+}
+
+char *my_strcat(const char *str1, const char *str2){
+    char *dest = NULL;
+    size_t str1_length, str2_length;
+
+    if(str1 && str2)
+    {
+        dest = malloc((str1_length = strlen(str1)) + (str2_length = strlen(str2)) + 1);
+        if(dest)
+        {
+            memcpy(dest, str1, str1_length);
+            memcpy(dest + str1_length, str2, str2_length);
+        }
+        dest[(str1_length + str2_length)] = '\0';
+    }
+    return dest;
 }

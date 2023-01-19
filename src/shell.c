@@ -8,11 +8,11 @@
 #include <dc_posix/dc_unistd.h>
 #include "shell.h"
 #include "shell_impl.h"
+#include "util.h"
 
 int run_shell(struct dc_env *env, struct dc_error *err) {
     int ret_val;
     struct dc_fsm_info *fsm_info;
-
     static struct dc_fsm_transition transitions[] = {
             {DC_FSM_INIT,       INIT_STATE,        init_state},
 
@@ -75,11 +75,10 @@ int run(const struct dc_env *env, struct dc_error *err, struct command *command,
             fprintf(stderr, "Error: %s\n", strerror(ENOENT));
         } else {
             for (char * new_com = *path; new_com; new_com = *path++) {
-                strcat(new_com, "/");
-                strcat(new_com, command->command);
-
-                command->argv[0] = new_com;
-                execv(new_com, command->argv);
+                char * dest = my_strcat(new_com, "/");
+                dest = my_strcat(dest, command->command);
+                command->argv[0] = dest;
+                dc_execv(env, err, dest, command->argv);
                 if (dc_error_has_error(err)){
                     if (!dc_error_is_errno(err, ENOENT))
                         break;

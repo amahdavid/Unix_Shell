@@ -8,6 +8,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
     dc_env_tracer tracer;
     struct dc_env *env;
     struct dc_error *err;
+    struct state *state;
     //int return_val = 0;
 
     // set the tracer to trace through the function calls
@@ -20,7 +21,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
     dc_error_init(err, false);
     dc_env_set_tracer(env, tracer);
 
-    run_shell(env, err);
+    run_shell(env, err/*, state*/);
 
     return EXIT_SUCCESS;
 }

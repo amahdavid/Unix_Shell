@@ -14,13 +14,10 @@ void execute(const struct dc_env *env, struct dc_error *err, struct state *state
             exit(126);
         }
 
-        run(env, err, state->command, path);
-        status = handle_run_error(env, err, state->command->command);
-        if (status != EXIT_SUCCESS) {
-             exit(status);
+        if (run(env, err, state->command, path) == -1){
+            status = handle_run_error(env, err, state->command->command);
+            exit(status);
         }
-        dc_execv(env, err, state->command->command, state->command->argv);
-        exit(126);
 
     } else {
         int exit_val;

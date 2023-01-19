@@ -7,11 +7,13 @@ project(dc-shell
 
 set(CMAKE_C_STANDARD 17)
 
-if (DEFINED ENV{DC_BUILD_SANITIZE})
-    set(SANITIZE $ENV{DC_BUILD_SANITIZE})
-else ()
-    set(SANITIZE FALSE)
-endif ()
+#if (DEFINED ENV{DC_BUILD_SANITIZE})
+#    set(SANITIZE $ENV{DC_BUILD_SANITIZE})
+#else ()
+#    set(SANITIZE TRUE)
+#endif ()
+set(SANITIZE TRUE)
+
 
 set(SOURCE_DIR ${PROJECT_SOURCE_DIR}/src)
 set(INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
@@ -112,6 +114,7 @@ if (${SANITIZE})
             "-fsanitize=pointer-compare"
             "-fsanitize=pointer-subtract"
             "-fsanitize=undefined"
+#            "-fsanitize=address"
             "-fsanitize-address-use-after-scope"
             "-fcf-protection=full"
             ##            "-fharden-compares"

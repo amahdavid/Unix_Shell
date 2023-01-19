@@ -23,7 +23,8 @@ regex_t out_regex;
 int init_state(const struct dc_env *env, struct dc_error *err, void *arg) {
 
     struct state *state = (struct state *) arg;
-    state->fatal_error = 0;
+    memset(state, 0, sizeof(struct state));
+    state->fatal_error = false;
     state->max_line_length = sysconf(_SC_ARG_MAX);
 
     regcomp(&in_regex, "[ \t\f\v]<.*", REG_EXTENDED);
@@ -35,8 +36,8 @@ int init_state(const struct dc_env *env, struct dc_error *err, void *arg) {
     state->err_redirect_regex = &err_regex;
     state->path = get_path(env, err, state);
     get_prompt(env, err, state);
+    state->command = (struct command *) malloc(sizeof(struct command));
     state->command->line = NULL;
-    state->command = NULL;
 
     if (err != NULL && dc_error_has_error(err)) {
         state->fatal_error = true;
@@ -218,9 +219,7 @@ int handle_run_error(const struct dc_env *env, struct dc_error *err, void *arg) 
 
 int destroy_state(const struct dc_env *env, struct dc_error *err, void *arg) {
     struct state *state = arg;
-    if (state){
-        free(state);
-    }
+    reset_state(env, err, state);
     return DC_FSM_EXIT;
 }
 

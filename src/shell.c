@@ -50,7 +50,6 @@ int run_shell(struct dc_env *env, struct dc_error *err) {
 
             {DESTROY_STATE,     DC_FSM_EXIT, NULL},
     };
-    dc_error_init(err, false);
     dc_env_set_tracer(env, NULL);
     ret_val = EXIT_SUCCESS;
     fsm_info = dc_fsm_info_create(env, err, "shell");

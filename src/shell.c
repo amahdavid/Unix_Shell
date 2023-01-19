@@ -75,6 +75,7 @@ int run(const struct dc_env *env, struct dc_error *err, struct command *command,
             fprintf(stderr, "Error: %s\n", strerror(ENOENT));
         } else {
             for (char * new_com = *path; new_com; new_com = *path++) {
+                printf("%s\n", new_com);
                 char * dest = my_strcat(new_com, "/");
                 dest = my_strcat(dest, command->command);
                 command->argv[0] = dest;

@@ -16,3 +16,5 @@ char *read_command_line(const struct dc_env *env, struct dc_error *err,
     }
     return line;
 }
+
+//export PATH="/usr/local/bin:$PATH"

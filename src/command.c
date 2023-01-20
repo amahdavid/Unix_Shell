@@ -5,25 +5,25 @@
 #include <dc_posix/dc_unistd.h>
 
 int parse_command(const struct dc_env *env, struct dc_error *err,
-                  struct state *state, struct command *command) {
+                  struct state *state) {
 
     if (dc_error_has_error(err)) {
         state->fatal_error = true;
         return ERROR;
     }
 
+    // THE REGEX RETURNS 0 IF IT MATCHES AND 1 IF IT DOES NOT
+    regmatch_t match;
     int regex_result_err, regex_result_out, regex_result_in, wordexp_result;
-    wordexp_t word;
+    wordexp_t exp;
 
     regex_result_err = regexec(state->err_redirect_regex,
                                state->command->line, 1,
-                               NULL, 0);
+                               &match, 0);
     if (regex_result_err == 0) {
 
-        regmatch_t reg_match;
-        regexec(state->err_redirect_regex, state->command->line, 1, &reg_match, 0);
-        size_t redirect_len = reg_match.rm_eo - reg_match.rm_so;
-        char *redirect = strndup(state->command->line + reg_match.rm_so, redirect_len);
+        size_t redirect_len = match.rm_eo - match.rm_so;
+        char *redirect = strndup(state->command->line + match.rm_so, redirect_len);
 
         if (redirect == NULL) {
             state->fatal_error = true;
@@ -41,18 +41,15 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
             return ERROR;
         }
         free(redirect);
-        state->command->line[reg_match.rm_so] = '\0';
+        state->command->line[match.rm_so] = '\0';
     }
 
     regex_result_out = regexec(state->out_redirect_regex,
                                state->command->line, 1,
-                               NULL, 0);
+                               &match, 0);
     if (regex_result_out == 0) {
-
-        regmatch_t reg_match;
-        regexec(state->out_redirect_regex, state->command->line, 1, &reg_match, 0);
-        size_t redirect_len = reg_match.rm_eo - reg_match.rm_so;
-        char *redirect = strndup(state->command->line + reg_match.rm_so, redirect_len);
+        size_t redirect_len = match.rm_eo - match.rm_so;
+        char *redirect = strndup(state->command->line + match.rm_so, redirect_len);
 
         if (redirect == NULL) {
             state->fatal_error = true;
@@ -71,18 +68,15 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
         }
 
         free(redirect);
-        state->command->line[reg_match.rm_so] = '\0';
+        state->command->line[match.rm_so] = '\0';
     }
 
     regex_result_in = regexec(state->in_redirect_regex,
                               state->command->line, 1,
-                              NULL, 0);
+                              &match, 0);
     if (regex_result_in == 0) {
-
-        regmatch_t reg_match;
-        regexec(state->in_redirect_regex, state->command->line, 1, &reg_match, 0);
-        size_t redirect_len = reg_match.rm_eo - reg_match.rm_so;
-        char *redirect = strndup(state->command->line + reg_match.rm_so, redirect_len);
+        size_t redirect_len = match.rm_eo - match.rm_so;
+        char *redirect = strndup(state->command->line + match.rm_so, redirect_len);
 
         if (redirect == NULL) {
             state->fatal_error = true;
@@ -98,23 +92,26 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
         }
 
         free(redirect);
-        state->command->line[reg_match.rm_so] = '\0';
+        state->command->line[match.rm_so] = '\0';
     }
 
-    wordexp_result = dc_wordexp(env, err, state->command->line, &word, 0);
+    wordexp_result = dc_wordexp(env, err, state->command->line, &exp, 0);
     if (wordexp_result == 0) {
 
-        state->command->argc = word.we_wordc;
-        state->command->argv = (char **) calloc(1, (word.we_wordc + 2) * sizeof(char *));
-        state->command->command = (char *) calloc(1, (strlen(word.we_wordv[0]) + 1));
+        state->command->argc = exp.we_wordc;
+        state->command->argv = (char **) calloc(1, (exp.we_wordc + 2) * sizeof(char *));
 
-        for (size_t i = 1; i < word.we_wordc + 1; ++i) {
-            state->command->argv[i] = strdup(word.we_wordv[i - 1]);
+        // why exp.we_wordc + 1?
+        for (size_t i = 0; i < exp.we_wordc; ++i) {
+            state->command->argv[i] = strdup(exp.we_wordv[i]);
         }
 
-        state->command->argv[word.we_wordc + 1] = NULL;
-        state->command->command = strdup(word.we_wordv[0]);
-        wordfree(&word);
+        //state->command->command = (char *) calloc(1, (strlen(exp.we_wordv[0]) + 2));
+        state->command->argv[exp.we_wordc + 1] = NULL;
+
+        // changed strdup(exp.we_wordv[0]); to strdup(state->command->line);
+        state->command->command = strdup(state->command->line);
+        wordfree(&exp);
 
     } else {
         printf("File or directory does not exist: %s\n", state->command->line);

@@ -15,6 +15,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
     //tracer = dc_env-default_tracer;
     tracer = NULL;
 
+    err = dc_error_create(false);
     env = dc_env_create(err, false, tracer);
 
     dc_error_init(err, false);

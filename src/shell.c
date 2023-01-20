@@ -3,7 +3,6 @@
 #include <dc_fsm/fsm.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <dc_posix/dc_unistd.h>
 #include "shell.h"
@@ -50,6 +49,7 @@ int run_shell(struct dc_env *env, struct dc_error *err) {
 
             {DESTROY_STATE,     DC_FSM_EXIT, NULL},
     };
+    //dc_error_init(err, false);
     dc_env_set_tracer(env, NULL);
     ret_val = EXIT_SUCCESS;
     fsm_info = dc_fsm_info_create(env, err, "shell");
@@ -74,7 +74,7 @@ int run(const struct dc_env *env, struct dc_error *err, struct command *command,
             fprintf(stderr, "Error: %s\n", strerror(ENOENT));
         } else {
             for (char * new_com = *path; new_com; new_com = *path++) {
-                printf("%s\n", new_com);
+                //printf("%s\n", new_com);
                 char * dest = my_strcat(new_com, "/");
                 dest = my_strcat(dest, command->command);
                 command->argv[0] = dest;

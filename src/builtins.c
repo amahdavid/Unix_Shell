@@ -12,7 +12,17 @@ void builtin_cd(const struct dc_env *env, struct dc_error *err, struct state *st
     if (state->command->argv[1] == NULL) {
         dc_expand_path(env, err, &path, "~/");
         dc_chdir(env, err, path);
-    } else {
+    }
+    else {
+        if (strcmp(state->command->argv[1], "/") == 0){
+            path = strdup("/");
+        } else if (strcmp(state->command->argv[1], "..") == 0){
+            path = strdup("../");
+        } else if (strcmp(state->command->argv[1], ".") == 0){
+            path = strdup("./");
+        } else{
+            path = strdup(state->command->argv[1]);
+        }
         dc_chdir(env, err, state->command->argv[1]);
         path = strdup(state->command->argv[1]);
     }

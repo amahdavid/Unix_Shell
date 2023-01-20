@@ -94,7 +94,7 @@ int separate_commands(const struct dc_env *env, struct dc_error *err, void *arg)
         return ERROR;
     }
 
-    state->command = calloc(2, sizeof(command));
+    state->command = calloc(1, sizeof(command));
 
     if (state->command == NULL) {
         return ERROR;
@@ -122,7 +122,7 @@ int separate_commands(const struct dc_env *env, struct dc_error *err, void *arg)
 int parse_commands(const struct dc_env *env, struct dc_error *err, void *arg) {
     struct state *state = arg;
     state->fatal_error = 0;
-    parse_command(env, err, state, state->command);
+    parse_command(env, err, state);
     if (dc_error_has_error(err)) {
         state->fatal_error = 1;
         return ERROR;
@@ -137,7 +137,12 @@ int execute_commands(const struct dc_env *env,
 
     if (strcmp(state->command->command, "cd") == 0) {
         builtin_cd(env, err, state);
-    } else if (strcmp(state->command->command, "exit") == 0) {
+    } else if(strcmp(state->command->command, "cd .") == 0){
+        builtin_cd(env, err, state);
+    } else if(strcmp(state->command->command, "cd /") == 0){
+        builtin_cd(env, err, state);
+    }
+    else if (strcmp(state->command->command, "exit") == 0) {
         return EXIT;
     } else {
         execute(env, err, state, state->path);
@@ -145,7 +150,6 @@ int execute_commands(const struct dc_env *env,
             state->fatal_error = true;
         }
     }
-
     printf("Exit code: %d\n", state->command->exit_code);
     if (state->fatal_error) {
         return ERROR;

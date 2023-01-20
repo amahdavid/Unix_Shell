@@ -141,6 +141,10 @@ int execute_commands(const struct dc_env *env,
         builtin_cd(env, err, state);
     } else if(strcmp(state->command->command, "cd /") == 0){
         builtin_cd(env, err, state);
+    } else if(strcmp(state->command->command, "cd ~") == 0){
+        builtin_cd(env, err, state);
+    } else if(strcmp(state->command->command, "cd ..") == 0){
+        builtin_cd(env, err, state);
     }
     else if (strcmp(state->command->command, "exit") == 0) {
         return EXIT;
@@ -156,7 +160,6 @@ int execute_commands(const struct dc_env *env,
     }
     return RESET_STATE;
 }
-
 int do_exit(const struct dc_env *env, struct dc_error *err, void *arg) {
     struct state *state = arg;
     do_reset_state(env, err, state);

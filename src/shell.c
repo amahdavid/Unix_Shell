@@ -78,7 +78,7 @@ int run(const struct dc_env *env, struct dc_error *err, struct command *command,
                 char * dest = my_strcat(new_com, "/");
                 dest = my_strcat(dest, command->command);
                 command->argv[0] = dest;
-                dc_execv(env, err, dest, command->argv);
+                dc_execvp(env, err, dest, command->argv);
                 if (dc_error_has_error(err)){
                     if (!dc_error_is_errno(err, ENOENT))
                         break;

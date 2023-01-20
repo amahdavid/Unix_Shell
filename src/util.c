@@ -104,62 +104,6 @@ char *expand_path(const struct dc_env *env, struct dc_error *err, char *file){
     }
 }
 
-//char *expand_path(const struct dc_env *env, struct dc_error *err, char *file){
-//    if (file[0] == '~'){
-//        char *home_directory = getenv("HOME");
-//        if (home_directory == NULL){
-//            printf("ERROR: HOME environment variable not found\n");
-//            return NULL;
-//        }
-//        size_t home_directory_len = strlen(home_directory);
-//        size_t file_len = strlen(file);
-//        char *expanded_file = malloc(home_directory_len + file_len);
-//        if (expanded_file == NULL){
-//            printf("ERROR: failed to allocate memory for expanded file\n");
-//            return NULL;
-//        }
-//        strcpy(expanded_file, home_directory);
-//        strcpy(expanded_file + home_directory_len, file + 1);
-//        return expanded_file;
-//    }
-//    else if(file[0] == '.' && file[1] == '/') {
-//        char cwd[1024];
-//        if (getcwd(cwd, sizeof(cwd)) != NULL) {
-//            size_t cwd_len = strlen(cwd);
-//            size_t file_len = strlen(file);
-//            char *expanded_file = malloc(cwd_len + file_len);
-//            if (expanded_file == NULL) {
-//                printf("ERROR: failed to allocate memory for expanded file\n");
-//                return NULL;
-//            }
-//            strcpy(expanded_file, cwd);
-//            strcpy(expanded_file + cwd_len, file + 2);
-//            return expanded_file;
-//        } else {
-//            printf("ERROR: failed to get current working directory\n");
-//            return NULL;
-//        }
-//    }
-//    else if(strcmp(file, "..") == 0) {
-//        char cwd[1024];
-//        if (getcwd(cwd, sizeof(cwd)) != NULL) {
-//            char *pos = strrchr(cwd, '/');
-//            if(pos != NULL){
-//                *pos = 0;
-//            }
-//            return strdup(cwd);
-//        } else {
-//            printf("ERROR: failed to get current working directory\n");
-//            return NULL;
-//        }
-//    }
-//    else {
-//        // file path does not start with ~ or ., return original path
-//        return file;
-//    }
-//}
-
-
 char *my_strcat(const char *str1, const char *str2){
     char *dest = NULL;
     size_t str1_length, str2_length;

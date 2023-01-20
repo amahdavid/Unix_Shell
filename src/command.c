@@ -101,16 +101,14 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
         state->command->argc = exp.we_wordc;
         state->command->argv = (char **) calloc(1, (exp.we_wordc + 2) * sizeof(char *));
 
-        // why exp.we_wordc + 1?
         for (size_t i = 0; i < exp.we_wordc; ++i) {
             state->command->argv[i] = strdup(exp.we_wordv[i]);
         }
 
         //state->command->command = (char *) calloc(1, (strlen(exp.we_wordv[0]) + 2));
-        state->command->argv[exp.we_wordc + 1] = NULL;
-
-        // changed strdup(exp.we_wordv[0]); to strdup(state->command->line);
-        state->command->command = strdup(state->command->line);
+        state->command->argv[exp.we_wordc] = NULL;
+        state->command->command = strdup(exp.we_wordv[0]);
+//        state->command->command = strdup(state->command->line);
         wordfree(&exp);
 
     } else {

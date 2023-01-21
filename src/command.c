@@ -11,7 +11,6 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
         state->fatal_error = true;
         return ERROR;
     }
-
     // THE REGEX RETURNS 0 IF IT MATCHES AND 1 IF IT DOES NOT
     regmatch_t match;
     int regex_result_err, regex_result_out, regex_result_in, wordexp_result;
@@ -105,69 +104,67 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
             state->command->argv[i] = strdup(exp.we_wordv[i]);
         }
 
-        //state->command->command = (char *) calloc(1, (strlen(exp.we_wordv[0]) + 2));
         state->command->argv[exp.we_wordc] = NULL;
         state->command->command = strdup(exp.we_wordv[0]);
-//        state->command->command = strdup(state->command->line);
         wordfree(&exp);
 
     } else {
-        printf("File or directory does not exist: %s\n", state->command->line);
-        handle_error(env, err, state);
+        printf("unable to parse: %s\n", state->command->line);
+//        handle_error(env, err, state->command->command);
     }
     return EXECUTE_COMMANDS;
 }
 
-int redirect(const struct dc_env *env, struct dc_error *err, void *arg) {
+void redirect(const struct dc_env *env, struct dc_error *err, void *arg) {
 
     struct state *state = (struct state *) arg;
-    FILE *file;
-    if (dc_error_has_error(err)) {
-        fclose(file);
-        return ERROR;
+    int fd;
+
+    if (dc_error_has_error(err)){
+        handle_error(env, err, state);
+        return;
     }
 
-    if (state->command->stdin_file != NULL) {
-        file = fopen(state->command->stdin_file, O_RDONLY);
-        if (file == NULL) {
-            if (state->command->stdout_file != NULL) {
-                fclose(file);
-            }
-            if (state->command->stderr_file != NULL) {
-                fclose(file);
-            }
-            return ERROR;
+    if (state->command->stdin_file != NULL){
+        fd = open(state->command->stdin_file, O_RDONLY);
+        if (fd == -1){
+            perror("open");
+            dc_error_has_error(err);
+            close(fd);
+            return;
         }
-        dc_dup2(env, err, fileno(file), STDIN_FILENO);
+        dc_dup2(env, err, fd, STDIN_FILENO);
     }
 
-    if (state->command->stdout_file != NULL) {
-        if (state->command->stderr_overwrite) {
-            file = fopen(state->command->stdout_file, "w");
-        } else {
-            file = fopen(state->command->stdout_file, "a");
+    if (state->command->stdout_file != NULL){
+        if (state->command->stderr_overwrite){
+            fd = open(state->command->stdout_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+        } else{
+            fd = open(state->command->stdout_file, O_WRONLY | O_CREAT | O_APPEND | S_IRUSR | S_IWUSR);
         }
-        if (file == NULL) {
-            if (state->command->stderr_file != NULL) {
-                fclose(file);
-            }
-            return ERROR;
+        if (fd == -1){
+            perror("open");
+            handle_error(env, err, state->command->command);
+            printf("redirect in command.c stdout.file");
+            close(fd);
+            return;
         }
-        dc_dup2(env, err, fileno(file), STDOUT_FILENO);
+        dc_dup2(env, err, fd, STDOUT_FILENO);
     }
 
-    if (state->command->stderr_file != NULL) {
-        if (state->command->stderr_overwrite) {
-            file = fopen(state->command->stderr_file, "w");
-        } else {
-            file = fopen(state->command->stderr_file, "a");
+    if (state->command->stderr_file != NULL){
+        if (state->command->stderr_overwrite){
+            fd = open(state->command->stderr_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+        } else{
+            fd = open(state->command->stderr_file, O_WRONLY | O_CREAT | O_APPEND | S_IRUSR | S_IWUSR);
         }
-        if (file == NULL) {
-            handle_error(env, err, state->command);
-            printf("redirect in command.c stderr_file");
-            return ERROR;
+        if (fd == -1){
+            handle_error(env, err, state->command->command);
+            printf("redirect in command.c stderr.file");
+            close(fd);
+            return;
         }
-        dc_dup2(env, err, fileno(file), STDERR_FILENO);
+        dc_dup2(env, err, fd, STDERR_FILENO);
     }
 }
 

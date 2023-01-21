@@ -154,7 +154,7 @@ int execute_commands(const struct dc_env *env,
             state->fatal_error = true;
         }
     }
-    printf("Exit code: %d\n", state->command->exit_code);
+    printf("\nExit code: %d\n", state->command->exit_code);
     if (state->fatal_error) {
         return ERROR;
     }

@@ -60,12 +60,13 @@ char **parse_path(const struct dc_env *env, struct dc_error *err, char *path_str
     return path;
 }
 
-void do_reset_state(const struct dc_env *env,
+int do_reset_state(const struct dc_env *env,
                     struct dc_error *err, struct state *state) {
 
     free(state->current_line);
     state->current_line = NULL;
     memset(err, 0, sizeof(state));
+    return READ_COMMANDS;
 }
 
 char *expand_path(const struct dc_env *env, struct dc_error *err, char *file){

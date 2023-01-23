@@ -120,51 +120,61 @@ void redirect(const struct dc_env *env, struct dc_error *err, void *arg) {
     struct state *state = (struct state *) arg;
     int fd;
 
-    if (dc_error_has_error(err)){
+    if (dc_error_has_error(err)) {
         handle_error(env, err, state);
         return;
     }
 
-    if (state->command->stdin_file != NULL){
-        fd = open(state->command->stdin_file, O_RDONLY);
-        if (fd == -1){
-            perror("open");
-            dc_error_has_error(err);
-            close(fd);
-            return;
-        }
+    if (state->command->stdin_file != NULL) {
+        // THIS OPENS THE NEW STDIN FILE
+        fd = open(state->command->stdin_file, O_RDONLY, S_IRWXO | S_IRWXG | S_IRWXU);
+        // CHANGES THE STANDARD IN FILE TO NEW STDIN_FILE
         dc_dup2(env, err, fd, STDIN_FILENO);
-    }
-
-    if (state->command->stdout_file != NULL){
-        if (state->command->stderr_overwrite){
-            fd = open(state->command->stdout_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-        } else{
-            fd = open(state->command->stdout_file, O_WRONLY | O_CREAT | O_APPEND | S_IRUSR | S_IWUSR);
-        }
-        if (fd == -1){
-            perror("open");
-            handle_error(env, err, state->command->command);
-            printf("redirect in command.c stdout.file");
-            close(fd);
+        if (dc_error_has_error(err)) {
+            state->fatal_error = true;
             return;
         }
+        // CLOSES THE FILE
+        dc_close(env, err, fd);
+    }
+
+    if (state->command->stdout_file != NULL) {
+        // CHECKS IF IT SHOULD OVERWRITE OR TRUNCATE
+        if (state->command->stderr_overwrite == true) {
+            // OPENS THE STDOUT_FILE TO TRUNCATE
+            fd = open(state->command->stdout_file,
+                      O_CREAT | O_RDWR | O_TRUNC, S_IRWXO | S_IRWXG | S_IRWXU);
+        } else {
+            // OPENS THE STDOUT_FILE TO APPEND
+            fd = open(state->command->stdout_file,
+                      O_CREAT | O_RDWR | O_APPEND, S_IRWXO | S_IRWXG | S_IRWXU);
+        }
+        // CHANGES THE STANDARD IN FILE TO NEW STDOUT_FILENO
         dc_dup2(env, err, fd, STDOUT_FILENO);
+        if (dc_error_has_error(err)) {
+            state->fatal_error = true;
+            return;
+        }
+        // CLOSES THE FILE
+        dc_close(env, err, fd);
     }
 
-    if (state->command->stderr_file != NULL){
-        if (state->command->stderr_overwrite){
-            fd = open(state->command->stderr_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-        } else{
-            fd = open(state->command->stderr_file, O_WRONLY | O_CREAT | O_APPEND | S_IRUSR | S_IWUSR);
-        }
-        if (fd == -1){
-            handle_error(env, err, state->command->command);
-            printf("redirect in command.c stderr.file");
-            close(fd);
-            return;
+    if (state->command->stderr_file != NULL) {
+        // CHECKS IF IT SHOULD OVERWRITE OR TRUNCATE
+        if (state->command->stderr_overwrite == true) {
+            fd = open(state->command->stderr_file,
+                      O_CREAT | O_RDWR | O_TRUNC, S_IRWXO | S_IRWXG | S_IRWXU);
+        } else {
+            fd = open(state->command->stderr_file,
+                      O_CREAT | O_RDWR | O_APPEND, S_IRWXO | S_IRWXG | S_IRWXU);
         }
         dc_dup2(env, err, fd, STDERR_FILENO);
+        if (dc_error_has_error(err)) {
+            state->fatal_error = true;
+            return;
+        }
+        // CLOSES THE FILE
+        dc_close(env, err, fd);
     }
 }
 

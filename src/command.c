@@ -126,8 +126,7 @@ void redirect(const struct dc_env *env, struct dc_error *err, void *arg) {
 
     if (state->command->stdin_file != NULL) {
         // THIS OPENS THE NEW STDIN FILE
-//        fd = open(state->command->stdin_file, O_RDONLY, S_IRWXO | S_IRWXG | S_IRWXU);
-        fd = open("a.txt", O_RDONLY, S_IRWXO | S_IRWXG | S_IRWXU);
+        fd = open(state->command->stdin_file, O_RDONLY, S_IRWXO | S_IRWXG | S_IRWXU);
         // CHANGES THE STANDARD IN FILE TO NEW STDIN_FILE
         dc_dup2(env, err, fd, STDIN_FILENO);
         if (dc_error_has_error(err)) {
@@ -142,16 +141,12 @@ void redirect(const struct dc_env *env, struct dc_error *err, void *arg) {
         // CHECKS IF IT SHOULD OVERWRITE OR TRUNCATE
         if (state->command->stderr_overwrite == true) {
             // OPENS THE STDOUT_FILE TO TRUNCATE
-            fd = open("out.txt",
+            fd = open(state->command->stdout_file,
                       O_CREAT | O_RDWR | O_TRUNC, S_IRWXO | S_IRWXG | S_IRWXU);
-//            fd = open(state->command->stdout_file,
-//                      O_CREAT | O_RDWR | O_TRUNC, S_IRWXO | S_IRWXG | S_IRWXU);
         } else {
             // OPENS THE STDOUT_FILE TO APPEND
-            fd = open("out.txt",
+            fd = open(state->command->stdout_file,
                       O_CREAT | O_RDWR | O_APPEND, S_IRWXO | S_IRWXG | S_IRWXU);
-//            fd = open(state->command->stdout_file,
-//                      O_CREAT | O_RDWR | O_APPEND, S_IRWXO | S_IRWXG | S_IRWXU);
         }
         // CHANGES THE STANDARD IN FILE TO NEW STDOUT_FILENO
         dc_dup2(env, err, fd, STDOUT_FILENO);
@@ -166,15 +161,11 @@ void redirect(const struct dc_env *env, struct dc_error *err, void *arg) {
     if (state->command->stderr_file != NULL) {
         // CHECKS IF IT SHOULD OVERWRITE OR TRUNCATE
         if (state->command->stderr_overwrite == true) {
-            fd = open("err.txt",
+            fd = open(state->command->stderr_file,
                       O_CREAT | O_RDWR | O_TRUNC, S_IRWXO | S_IRWXG | S_IRWXU);
-//            fd = open(state->command->stderr_file,
-//                      O_CREAT | O_RDWR | O_TRUNC, S_IRWXO | S_IRWXG | S_IRWXU);
         } else {
-            fd = open("err.txt",
+            fd = open(state->command->stderr_file,
                       O_CREAT | O_RDWR | O_APPEND, S_IRWXO | S_IRWXG | S_IRWXU);
-//            fd = open(state->command->stderr_file,
-//                      O_CREAT | O_RDWR | O_APPEND, S_IRWXO | S_IRWXG | S_IRWXU);
         }
         dc_dup2(env, err, fd, STDERR_FILENO);
         if (dc_error_has_error(err)) {

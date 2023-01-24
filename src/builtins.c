@@ -38,8 +38,8 @@ void builtin_cd(const struct dc_env *env, struct dc_error *err, struct state *st
         } else if (dc_error_is_errno(err, ENAMETOOLONG)) {
             fprintf(stdout, "%s File name too long\n", path);
 
-        } else if (dc_error_is_errno(err, ENONET)) {
-            fprintf(stdout, "%s No such file or directory\n", path);
+        } else if (dc_error_is_errno(err, ENOENT)) {
+            fprintf(stdout, "cd: No such file or directory: %s\n", path);
 
         } else if (dc_error_is_errno(err, ENOTDIR)) {
             fprintf(stdout, "%s Not a directory\n", path);

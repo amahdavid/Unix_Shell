@@ -114,7 +114,7 @@ if (${SANITIZE})
             "-fsanitize=pointer-compare"
             "-fsanitize=pointer-subtract"
             "-fsanitize=undefined"
-#            "-fsanitize=address"
+            #            "-fsanitize=address"
             "-fsanitize-address-use-after-scope"
             "-fcf-protection=full"
             ##            "-fharden-compares"
@@ -187,6 +187,7 @@ set(CLANG_TIDY_CHECKS "${CLANG_TIDY_CHECKS},-llvmlibc-restrict-system-libc-heade
 set(CLANG_TIDY_CHECKS "${CLANG_TIDY_CHECKS},-misc-static-assert")
 set(CLANG_TIDY_CHECKS "${CLANG_TIDY_CHECKS},-misc-unused-parameters")
 set(CLANG_TIDY_CHECKS "${CLANG_TIDY_CHECKS},-readability-identifier-length")
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     if (NOT DEFINED ENV{CMDLINE_TOOLS_VER})

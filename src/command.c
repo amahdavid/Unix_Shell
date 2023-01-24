@@ -20,7 +20,6 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
                                state->command->line, 1,
                                &match, 0);
     if (regex_result_err == 0) {
-
         size_t redirect_len = match.rm_eo - match.rm_so;
         char *redirect = strndup(state->command->line + match.rm_so, redirect_len);
 
@@ -54,7 +53,7 @@ int parse_command(const struct dc_env *env, struct dc_error *err,
             state->fatal_error = true;
             return ERROR;
         }
-        if (strstr(redirect, ">>")) {
+        if (strstr(redirect, ">>") != NULL) {
             state->command->stdout_overwrite = true;
         }
 
@@ -127,7 +126,8 @@ void redirect(const struct dc_env *env, struct dc_error *err, void *arg) {
 
     if (state->command->stdin_file != NULL) {
         // THIS OPENS THE NEW STDIN FILE
-        fd = open(state->command->stdin_file, O_RDONLY, S_IRWXO | S_IRWXG | S_IRWXU);
+//        fd = open(state->command->stdin_file, O_RDONLY, S_IRWXO | S_IRWXG | S_IRWXU);
+        fd = open("a.txt", O_RDONLY, S_IRWXO | S_IRWXG | S_IRWXU);
         // CHANGES THE STANDARD IN FILE TO NEW STDIN_FILE
         dc_dup2(env, err, fd, STDIN_FILENO);
         if (dc_error_has_error(err)) {
@@ -142,12 +142,16 @@ void redirect(const struct dc_env *env, struct dc_error *err, void *arg) {
         // CHECKS IF IT SHOULD OVERWRITE OR TRUNCATE
         if (state->command->stderr_overwrite == true) {
             // OPENS THE STDOUT_FILE TO TRUNCATE
-            fd = open(state->command->stdout_file,
+            fd = open("out.txt",
                       O_CREAT | O_RDWR | O_TRUNC, S_IRWXO | S_IRWXG | S_IRWXU);
+//            fd = open(state->command->stdout_file,
+//                      O_CREAT | O_RDWR | O_TRUNC, S_IRWXO | S_IRWXG | S_IRWXU);
         } else {
             // OPENS THE STDOUT_FILE TO APPEND
-            fd = open(state->command->stdout_file,
+            fd = open("out.txt",
                       O_CREAT | O_RDWR | O_APPEND, S_IRWXO | S_IRWXG | S_IRWXU);
+//            fd = open(state->command->stdout_file,
+//                      O_CREAT | O_RDWR | O_APPEND, S_IRWXO | S_IRWXG | S_IRWXU);
         }
         // CHANGES THE STANDARD IN FILE TO NEW STDOUT_FILENO
         dc_dup2(env, err, fd, STDOUT_FILENO);
@@ -162,11 +166,15 @@ void redirect(const struct dc_env *env, struct dc_error *err, void *arg) {
     if (state->command->stderr_file != NULL) {
         // CHECKS IF IT SHOULD OVERWRITE OR TRUNCATE
         if (state->command->stderr_overwrite == true) {
-            fd = open(state->command->stderr_file,
+            fd = open("err.txt",
                       O_CREAT | O_RDWR | O_TRUNC, S_IRWXO | S_IRWXG | S_IRWXU);
+//            fd = open(state->command->stderr_file,
+//                      O_CREAT | O_RDWR | O_TRUNC, S_IRWXO | S_IRWXG | S_IRWXU);
         } else {
-            fd = open(state->command->stderr_file,
+            fd = open("err.txt",
                       O_CREAT | O_RDWR | O_APPEND, S_IRWXO | S_IRWXG | S_IRWXU);
+//            fd = open(state->command->stderr_file,
+//                      O_CREAT | O_RDWR | O_APPEND, S_IRWXO | S_IRWXG | S_IRWXU);
         }
         dc_dup2(env, err, fd, STDERR_FILENO);
         if (dc_error_has_error(err)) {
